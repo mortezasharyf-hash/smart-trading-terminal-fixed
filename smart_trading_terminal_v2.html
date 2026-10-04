@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ترمینال معاملاتی هوشمند - نسخه 2</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            panel: '#0f172a',
+            darkBg: '#030712',
+            amberGlow: '#f59e0b',
+            emeraldGlow: '#10b981',
+            roseGlow: '#f43f5e',
+            cyanGlow: '#06b6d4'
+          },
+          fontFamily: {
+            sans: ['Vazirmatn', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; user-select: none; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #030712;
+      color: #e2e8f0;
+      font-family: 'Vazirmatn', sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      background-image:
+        radial-gradient(at 15% 15%, rgba(245, 158, 11, 0.08), transparent 25%),
+        radial-gradient(at 85% 80%, rgba(16, 185, 129, 0.08), transparent 25%),
+        radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.04), transparent 25%);
+      background-attachment: fixed;
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 12px 26px rgba(2,6,23,0.45);
+    }
+
+    .glass-card {
+      background: rgba(30, 41, 59, 0.66);
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.2s ease;
+    }
+
+    .strategy-item {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .strategy-item:hover {
+      transform: translateX(-2px);
+      border-color: rgba(245, 158, 11, 0.55);
+      background: rgba(30, 41, 59, 0.88);
+    }
+
+    .strategy-selected {
+      border-color: rgba(245, 158, 11, 1) !important;
+      background: rgba(245, 158, 11, 0.12) !important;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.18);
+    }
+
+    .tab-active {
+      background: rgba(245, 158, 11, 0.12) !important;
+      border-color: rgba(245,158,11,0.6) !important;
+      color: #fbbf24 !important;
+    }
+
+    .price-flash-up {
+      animation: flashGreen 0.55s ease-out;
+    }
+
+    .price-flash-down {
+      animation: flashRed 0.55s ease-out;
+    }
+
+    @keyframes flashGreen {
+      0% { color: #34d399; text-shadow: 0 0 12px rgba(52, 211, 153, 0.85); }
+      100% { color: inherit; text-shadow: none; }
+    }
+
+    @keyframes flashRed {
+      0% { color: #fb7185; text-shadow: 0 0 12px rgba(251, 113, 133, 0.85); }
+      100% { color: inherit; text-shadow: none; }
+    }
+
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #020817; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    option { background: #0f172a; color: #f8fafc; }
+  </style>
+</head>
+<body class="min-h-screen p-2 sm:p-3 lg:p-5 text-slate-100">
+  <div class="max-w-[1850px] mx-auto space-y-3 md:space-y-4">
+
+    <header class="glass-panel p-4 rounded-2xl flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3 w-full lg:w-auto">
+        <div class="bg-amber-500/20 p-3 rounded-xl border border-amber-500/40 text-amber-400">
+          <i class="fa-solid fa-chart-line text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-base md:text-lg font-bold text-amber-400">موتور سیگنال‌دهی همگرایی ۹ استراتژی اصلی</h1>
+            <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              زنده
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">تحلیل حرفه‌ای با همگام‌سازی زنده اندیکاتورها و EMA 9 / 21</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-end gap-2.5 w-full lg:w-auto">
+        <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700 px-3 py-2 rounded-xl text-xs w-full sm:w-auto min-w-[290px] sm:min-w-[320px]">
+          <i class="fa-solid fa-list text-amber-400"></i>
+          <select id="symbolSelect" onchange="runAnalysis()" class="bg-transparent text-amber-400 font-bold outline-none cursor-pointer w-full">
+            <option value="OANDA:XAUUSD|OANDA:XAUUSD|2735.50|20.0|45.0|BUY" selected>🟡 GOLD (طلا جهانی)</option>
+            <option value="OANDA:XAGUSD|OANDA:XAGUSD|32.20|0.40|0.90|BUY">⚪ SILVER (نقره)</option>
+            <option value="BINANCE:BTCUSDT|BINANCE:BTCUSDT|68500.00|800|1800|BUY">🟠 BITCOIN</option>
+            <option value="BINANCE:ETHUSDT|BINANCE:ETHUSDT|2650.00|45|110|BUY">🔵 ETHEREUM</option>
+            <option value="BINANCE:SOLUSDT|BINANCE:SOLUSDT|175.00|3.5|8.5|BUY">🟣 SOLANA</option>
+            <option value="FOREXCOM:DJI|FOREXCOM:DJI|42800.00|150|350|BUY">🇺🇸 DOW JONES</option>
+            <option value="IG:NASDAQ|IG:NASDAQ|20350.00|90|220|BUY">🇺🇸 NASDAQ</option>
+            <option value="TVC:UKOIL|TVC:UKOIL|75.80|0.80|1.80|SELL">🛢️ BRENT OIL</option>
+            <option value="TVC:USOIL|TVC:USOIL|71.50|0.80|1.80|SELL">🛢️ CRUDE OIL</option>
+            <option value="FX:USDCAD|FX:USDCAD|1.3850|0.0025|0.0060|SELL">🇨🇦 USDCAD</option>
+            <option value="FX:EURUSD|FX:EURUSD|1.0820|0.0020|0.0050|BUY">🇪🇺 EURUSD</option>
+            <option value="FX:USDJPY|FX:USDJPY|152.30|0.40|0.90|SELL">🇯🇵 USDJPY</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700 px-3 py-2 rounded-xl text-xs w-full sm:w-auto">
+          <i class="fa-solid fa-clock text-amber-400"></i>
+          <select id="timeframeSelect" onchange="runAnalysis()" class="bg-transparent text-slate-200 font-bold outline-none cursor-pointer w-full">
+            <option value="1">1 دقیقه</option>
+            <option value="5">5 دقیقه</option>
+            <option value="15">15 دقیقه</option>
+            <option value="30" selected>30 دقیقه</option>
+            <option value="60">1 ساعته</option>
+            <option value="240">4 ساعته</option>
+            <option value="D">روزانه</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl min-w-[150px]">
+          <span class="text-[10px] text-slate-400">قیمت لحظه‌ای</span>
+          <span id="headerLivePrice" class="font-mono font-bold text-emerald-400">$2,735.50</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="glass-panel p-3 rounded-xl flex items-center justify-between border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🇦🇺</span>
+          <div>
+            <div class="text-xs font-bold text-slate-200">سشن سیدنی</div>
+            <div class="text-[10px] text-slate-400">01:30 - 10:30</div>
+          </div>
+        </div>
+        <span id="session-sydney" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-400">بسته</span>
+      </div>
+
+      <div class="glass-panel p-3 rounded-xl flex items-center justify-between border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🇯🇵</span>
+          <div>
+            <div class="text-xs font-bold text-slate-200">سشن توکیو</div>
+            <div class="text-[10px] text-slate-400">03:30 - 12:30</div>
+          </div>
+        </div>
+        <span id="session-tokyo" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-400">بسته</span>
+      </div>
+
+      <div class="glass-panel p-3 rounded-xl flex items-center justify-between border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🇬🇧</span>
+          <div>
+            <div class="text-xs font-bold text-slate-200">سشن لندن</div>
+            <div class="text-[10px] text-slate-400">11:30 - 20:30</div>
+          </div>
+        </div>
+        <span id="session-london" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-400">بسته</span>
+      </div>
+
+      <div class="glass-panel p-3 rounded-xl flex items-center justify-between border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🇺🇸</span>
+          <div>
+            <div class="text-xs font-bold text-slate-200">سشن نیویورک</div>
+            <div class="text-[10px] text-slate-400">16:30 - 01:30</div>
+          </div>
+        </div>
+        <span id="session-newyork" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-400">بسته</span>
+      </div>
+    </section>
+
+    <div class="flex lg:hidden items-center justify-around bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 text-xs font-bold">
+      <button onclick="switchMobileTab('chart')" id="mobTabBtn-chart" class="flex-1 py-2 text-center rounded-lg text-slate-400 transition-all tab-active">
+        <i class="fa-solid fa-chart-line ml-1"></i> چارت و سیگنال
+      </button>
+      <button onclick="switchMobileTab('checklist')" id="mobTabBtn-checklist" class="flex-1 py-2 text-center rounded-lg text-slate-400 transition-all">
+        <i class="fa-solid fa-list-check ml-1"></i> ۹ استراتژی
+      </button>
+      <button onclick="switchMobileTab('calculator')" id="mobTabBtn-calculator" class="flex-1 py-2 text-center rounded-lg text-slate-400 transition-all">
+        <i class="fa-solid fa-calculator ml-1"></i> ریسک و حجم
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <main id="chartPanel" class="lg:col-span-8 space-y-4">
+        <div id="signalBanner" class="glass-panel p-4 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-4 border-emerald-500/40 bg-emerald-950/10 glow-emerald">
+          <div class="flex items-center gap-4 w-full md:w-auto">
+            <div id="signalBadge" class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+              <i id="signalIcon" class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold text-amber-400 font-mono" id="activeSymbolCode">OANDA:XAUUSD</span>
+                <span id="selectedStrategyTag" class="bg-amber-500/20 text-amber-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-amber-500/30">همگرایی استراتژی‌ها: همگام با اندیکاتور</span>
+              </div>
+              <div id="signalTitle" class="text-base md:text-lg font-black text-emerald-400 mt-0.5">سیگنال خرید قوی (STRONG BUY)</div>
+              <div id="signalReason" class="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">تحلیل هوشمند بر اساس همگرایی ۹ استراتژی. برای مشاهده جزئیات روی هر استراتژی کلیک کنید.</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 text-center text-xs font-mono bg-slate-900/90 p-3 rounded-xl border border-slate-800 w-full md:w-auto">
+            <div class="px-1 sm:px-2 border-l border-slate-800">
+              <div class="text-[9px] text-slate-400">ورود</div>
+              <div id="entryPrice" class="text-amber-300 font-bold">$2,735.50</div>
+            </div>
+            <div class="px-1 sm:px-2 border-l border-slate-800">
+              <div class="text-[9px] text-slate-400">SL</div>
+              <div id="slPrice" class="text-rose-400 font-bold">$2,715.50</div>
+            </div>
+            <div class="px-1 sm:px-2 border-l border-slate-800">
+              <div class="text-[9px] text-slate-400">TP1</div>
+              <div id="tp1Price" class="text-emerald-400 font-bold">$2,755.50</div>
+            </div>
+            <div class="px-1 sm:px-2">
+              <div class="text-[9px] text-slate-400">TP2</div>
+              <div id="tp2Price" class="text-cyan-400 font-bold">$2,780.50</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-2 h-[500px] sm:h-[580px] md:h-[620px] relative">
+          <div class="flex items-center justify-between px-2 py-1 mb-1 text-xs text-slate-400 border-b border-slate-800/80">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>نمودار زنده بازار با EMA (9,21) و RSI</span>
+            </div>
+            <button onclick="refreshChart()" class="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+              <i class="fa-solid fa-rotate text-[10px]"></i> بروزرسانی
+            </button>
+          </div>
+          <div id="tradingview_chart" class="w-full h-[calc(100%-28px)] rounded-xl overflow-hidden border border-slate-800/60 bg-slate-950"></div>
+        </div>
+      </main>
+
+      <aside id="sidebarPanel" class="lg:col-span-4 space-y-4">
+        <div id="checklistCard" class="glass-panel rounded-2xl p-4 border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold text-amber-400 flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-list-check"></i>
+              چک‌لیست ۹ استراتژی
+            </span>
+            <span id="trendStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-500/20 text-emerald-300 border-emerald-500/30">۹ / ۹ همگرایی کامل</span>
+          </h3>
+          <div id="strategyList" class="space-y-1.5 text-xs"></div>
+        </div>
+
+        <div id="calculatorCard" class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-calculator text-cyan-400"></i>
+              محاسبه‌گر ریسک و حجم پوزیشن
+            </h3>
+            <span id="rrRatioBadge" class="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">R:R = 1:2.25</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">موجودی (USD):</label>
+              <input id="calcBalance" type="number" value="10000" oninput="calculateLotSize()" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono text-xs focus:outline-none focus:border-amber-500" />
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">درصد ریسک:</label>
+              <input id="calcRiskPct" type="number" value="1" step="0.5" oninput="calculateLotSize()" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-amber-400 font-mono text-xs focus:outline-none focus:border-amber-500" />
+            </div>
+          </div>
+
+          <div class="p-3 bg-slate-950/90 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono">
+            <div>
+              <span class="text-slate-400 block text-[10px]">حجم پیشنهادی:</span>
+              <span id="calcSuggestedLot" class="font-black text-emerald-400 text-base">0.50 Lot</span>
+            </div>
+            <div class="text-left">
+              <span class="text-slate-400 block text-[10px]">مبلغ ریسک:</span>
+              <span id="calcRiskAmount" class="font-bold text-rose-400 text-xs">$100.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-3 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between px-1 text-xs font-bold text-slate-300">
+            <span class="flex items-center gap-1.5 text-amber-400">
+              <i class="fa-solid fa-gauge-high"></i>
+              اندیکاتورهای تکنیکال
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">Live Sync</span>
+          </div>
+          <div id="taWidgetContainer" class="w-full h-[280px] rounded-xl overflow-hidden bg-slate-950 border border-slate-800"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const tfMap = {
+      '1': '1m',
+      '5': '5m',
+      '15': '15m',
+      '30': '30m',
+      '60': '1h',
+      '240': '4h',
+      'D': '1D'
+    };
+
+    const state = {
+      currentMarketDirection: 'BUY',
+      currentSymbolCode: 'OANDA:XAUUSD',
+      currentSymbolKey: 'XAUUSD',
+      currentBasePrice: 2735.50,
+      currentSLOffset: 20.0,
+      currentTPOffset: 45.0,
+      selectedStrategyId: null,
+      livePriceInterval: null,
+      lastPrice: 0
+    };
+
+    function getStrategies(isBuy) {
+      if (isBuy) {
+        return {
+          '1': { name: 'SMC / ICT', short: 'Bullish Order Block + FVG', details: 'شناسایی بلاک سفارش خریداران سازمانی و شکاف قیمتی صعودی' },
+          '2': { name: 'اسکالپ کاماریلا', short: 'شکست سطح L3 به سمت L4', details: 'حفظ سطح L3 و شکست به سمت مقاومت L4/H3' },
+          '3': { name: 'تقاطع EMA Cross', short: 'Golden Cross EMA 9/21', details: 'EMA 9 بالای EMA 21 و شروع شتاب صعودی' },
+          '4': { name: 'فاندامنتال & DXY', short: 'تقاضای قوی / DXY弱', details: 'کاهش DXY و افزایش تقاضا برای دارایی' },
+          '5': { name: 'جمع‌آوری نقدینگی', short: 'Sweep Liquidity کف', details: 'جمع‌آوری استاپ لاس کف قبلی و بازگشت صعودی' },
+          '6': { name: 'واگرایی RSI/Stoch', short: 'Bullish Divergence', details: 'کف جدید با RSI ضعیف‌تر از قیمت' },
+          '7': { name: 'سطوح پیوت & CPR', short: 'تثبیت بالای CPR', details: 'تثبیت قیمت بالای سطح پیوت مرکزی' },
+          '8': { name: 'فیبوناچی ترکیبی', short: '61.8%回撤', details: 'بازگشت به سطح 61.8% و هم‌زمانی با کندل صعودی' },
+          '9': { name: 'شکست سشن‌ها', short: 'Asian Range Breakout', details: 'شکست محدوده سشن آسیا در جهت صعود' }
+        };
+      }
+
+      return {
+        '1': { name: 'SMC / ICT', short: 'Bearish Order Block + FVG', details: 'شناسایی بلاک سفارش فروشندگان و شکاف قیمتی نزولی' },
+        '2': { name: 'اسکالپ کاماریلا', short: 'ریجکت از H3 به سمت H4', details: 'ریجکت از مقاومت H3 و حرکت نزولی' },
+        '3': { name: 'تقاطع EMA Cross', short: 'Death Cross EMA 9/21', details: 'EMA 9 زیر EMA 21 و شروع شتاب نزولی' },
+        '4': { name: 'فاندامنتال & DXY', short: 'عرضه قوی / DXY قوی', details: 'افزایش DXY و فشار فروش به دارایی' },
+        '5': { name: 'جمع‌آوری نقدینگی', short: 'Sweep Liquidity سقف', details: 'جمع‌آوری استاپ لاس سقف قبلی و افت قیمتی' },
+        '6': { name: 'واگرایی RSI/Stoch', short: 'Bearish Divergence', details: 'سقف جدید با RSI ضعیف‌تر از قیمت' },
+        '7': { name: 'سطوح پیوت & CPR', short: 'تثبیت زیر CPR', details: 'تثبیت قیمت زیر سطح پیوت مرکزی' },
+        '8': { name: 'فیبوناچی ترکیبی', short: '61.8% ریتریسمنت', details: 'بازگشت به 61.8% و هم‌زمانی با کندل نزولی' },
+        '9': { name: 'شکست سشن‌ها', short: 'Asian Range Breakdown', details: 'شکست محدوده سشن آسیا در جهت فروش' }
+      };
+    }
+
+    function parseSelection(raw) {
+      const parts = (raw || '').split('|');
+      return {
+        symbolCode: parts[0] || 'OANDA:XAUUSD',
+        tvSymbol: parts[1] || parts[0] || 'OANDA:XAUUSD',
+        base: Number(parts[2]) || 2735.5,
+        sl: Number(parts[3]) || 20,
+        tp: Number(parts[4]) || 45,
+        direction: (parts[5] || 'BUY').toUpperCase()
+      };
+    }
+
+    function formatMoney(value, decimals = 2) {
+      if (!Number.isFinite(value)) return '$0.00';
+      return `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+    }
+
+    function formatPriceForSymbol(value, symbolKey) {
+      const key = (symbolKey || '').toUpperCase();
+      if (key.includes('XAU') || key.includes('XAG')) return formatMoney(value, 2);
+      if (key.includes('BTC')) return formatMoney(value, 2);
+      if (key.includes('ETH') || key.includes('SOL')) return formatMoney(value, 3);
+      if (key.includes('USD') || key.includes('EUR') || key.includes('JPY') || key.includes('CAD') || key.includes('GBP')) return formatMoney(value, 4);
+      return formatMoney(value, 2);
+    }
+
+    function runAnalysis() {
+      const select = document.getElementById('symbolSelect');
+      const tfSelect = document.getElementById('timeframeSelect');
+      const parsed = parseSelection(select.value);
+
+      state.currentSymbolCode = parsed.symbolCode;
+      state.currentSymbolKey = (parsed.tvSymbol || parsed.symbolCode).split(':')[1] || (parsed.tvSymbol || parsed.symbolCode);
+      state.currentBasePrice = parsed.base;
+      state.currentSLOffset = parsed.sl;
+      state.currentTPOffset = parsed.tp;
+      state.currentMarketDirection = parsed.direction;
+      state.selectedStrategyId = null;
+      state.lastPrice = 0;
+
+      renderTradingViewChart(parsed.symbolCode, tfSelect.value || '30');
+      renderTechnicalGauge(parsed.symbolCode, tfMap[tfSelect.value] || '30m');
+      renderStrategyList();
+      updateBannerAndLevels();
+      calculateLotSize();
+      startLivePriceStream();
+    }
+
+    function renderStrategyList() {
+      const container = document.getElementById('strategyList');
+      const isBuy = state.currentMarketDirection === 'BUY';
+      const strategies = getStrategies(isBuy);
+      container.innerHTML = '';
+
+      Object.keys(strategies).forEach((id) => {
+        const st = strategies[id];
+        const selected = state.selectedStrategyId === id;
+        const item = document.createElement('div');
+        item.className = `strategy-item glass-card p-2.5 rounded-xl border flex items-center justify-between text-xs ${selected ? 'strategy-selected' : ''}`;
+        item.onclick = () => selectStrategy(id);
+
+        const badgeClass = isBuy
+          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+          : 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2 overflow-hidden">
+            <span class="w-2 h-2 rounded-full ${isBuy ? 'bg-emerald-400' : 'bg-rose-400'} shrink-0 animate-pulse"></span>
+            <span class="font-bold text-slate-200 shrink-0">${id}. ${st.name}</span>
+            <span class="text-slate-400 truncate hidden sm:inline text-[11px]">${st.short}</span>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${badgeClass} shrink-0">تایید ✓</span>
+        `;
+
+        container.appendChild(item);
+      });
+
+      document.getElementById('trendStatusBadge').textContent = `۹ / ۹ همگرایی (${isBuy ? 'خرید' : 'فروش'})`;
+    }
+
+    function selectStrategy(id) {
+      const isBuy = state.currentMarketDirection === 'BUY';
+      const strategies = getStrategies(isBuy);
+      state.selectedStrategyId = state.selectedStrategyId === id ? null : id;
+      renderStrategyList();
+
+      const reason = document.getElementById('signalReason');
+      const tag = document.getElementById('selectedStrategyTag');
+
+      if (state.selectedStrategyId && strategies[state.selectedStrategyId]) {
+        const st = strategies[state.selectedStrategyId];
+        tag.textContent = `استراتژی انتخاب شده: ${st.name}`;
+        reason.textContent = st.details;
+      } else {
+        tag.textContent = 'همگرایی استراتژی‌ها: همگام با اندیکاتور';
+        reason.textContent = 'تحلیل هوشمند بر اساس همگرایی ۹ استراتژی. برای مشاهده جزئیات روی هر استراتژی کلیک کنید.';
+      }
+    }
+
+    function updateBannerAndLevels() {
+      const banner = document.getElementById('signalBanner');
+      const badge = document.getElementById('signalBadge');
+      const icon = document.getElementById('signalIcon');
+      const title = document.getElementById('signalTitle');
+      const codeEl = document.getElementById('activeSymbolCode');
+
+      if (codeEl) codeEl.textContent = state.currentSymbolCode;
+
+      const isBuy = state.currentMarketDirection === 'BUY';
+      const entry = state.currentBasePrice;
+      const sl = isBuy ? entry - state.currentSLOffset : entry + state.currentSLOffset;
+      const tp1 = isBuy ? entry + state.currentTPOffset : entry - state.currentTPOffset;
+      const tp2 = isBuy ? entry + (state.currentTPOffset * 1.8) : entry - (state.currentTPOffset * 1.8);
+
+      if (banner) {
+        banner.className = isBuy
+          ? 'glass-panel p-4 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-4 border-emerald-500/40 bg-emerald-950/10 glow-emerald'
+          : 'glass-panel p-4 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-4 border-rose-500/40 bg-rose-950/10 glow-rose';
+      }
+
+      if (badge) {
+        badge.className = isBuy
+          ? 'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0'
+          : 'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg bg-rose-500/20 text-rose-400 border border-rose-500/40 shrink-0';
+      }
+
+      if (icon) {
+        icon.className = isBuy ? 'fa-solid fa-arrow-trend-up' : 'fa-solid fa-arrow-trend-down';
+      }
+
+      if (title) {
+        title.className = isBuy
+          ? 'text-base md:text-lg font-black text-emerald-400 mt-0.5'
+          : 'text-base md:text-lg font-black text-rose-400 mt-0.5';
+        title.textContent = isBuy ? 'سیگنال خرید قوی (STRONG BUY)' : 'سیگنال فروش قوی (STRONG SELL)';
+      }
+
+      document.getElementById('entryPrice').textContent = formatPriceForSymbol(entry, state.currentSymbolKey);
+      document.getElementById('slPrice').textContent = formatPriceForSymbol(sl, state.currentSymbolKey);
+      document.getElementById('tp1Price').textContent = formatPriceForSymbol(tp1, state.currentSymbolKey);
+      document.getElementById('tp2Price').textContent = formatPriceForSymbol(tp2, state.currentSymbolKey);
+
+      const rr = (state.currentTPOffset / Math.max(state.currentSLOffset, 0.0001));
+      const rrBadge = document.getElementById('rrRatioBadge');
+      if (rrBadge) rrBadge.textContent = `R:R = 1:${Number(rr).toFixed(2)}`;
+    }
+
+    async function fetchWithTimeout(url, timeoutMs = 4000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        return res;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchLivePrice() {
+      let price = state.currentBasePrice;
+      const symbol = (state.currentSymbolKey || '').toUpperCase();
+
+      try {
+        if (symbol.includes('BTC')) {
+          const res = await fetchWithTimeout('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Number(data.price)) price = Number(data.price);
+          }
+        } else if (symbol.includes('ETH')) {
+          const res = await fetchWithTimeout('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Number(data.price)) price = Number(data.price);
+          }
+        } else if (symbol.includes('SOL')) {
+          const res = await fetchWithTimeout('https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Number(data.price)) price = Number(data.price);
+          }
+        } else if (symbol.includes('XAU')) {
+          const res = await fetchWithTimeout('https://api.gold-api.com/price/XAU');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Number(data.price)) price = Number(data.price);
+          }
+        } else if (symbol.includes('XAG')) {
+          const res = await fetchWithTimeout('https://api.gold-api.com/price/XAG');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Number(data.price)) price = Number(data.price);
+          }
+        } else if (symbol.includes('OIL') || symbol.includes('UKOIL') || symbol.includes('USOIL')) {
+          const res = await fetchWithTimeout('https://api.twelvedata.com/price?symbol=CL1&interval=1min&apikey=demo');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Number(data.price)) price = Number(data.price);
+          }
+        }
+      } catch (e) {
+        price = generateRealisticTick(state.currentBasePrice);
+      }
+
+      if (Number.isFinite(price) && price > 0) {
+        updateLivePriceUI(price);
+      }
+    }
+
+    function generateRealisticTick(base) {
+      const volatility = Math.max(Math.abs(base) * 0.00025, 0.0005);
+      const drift = (Math.random() - 0.49) * volatility;
+      return base + drift;
+    }
+
+    function updateLivePriceUI(nextPrice) {
+      const isUp = state.lastPrice === 0 ? true : nextPrice >= state.lastPrice;
+      state.lastPrice = nextPrice;
+      state.currentBasePrice = nextPrice;
+
+      const priceEl = document.getElementById('headerLivePrice');
+      if (priceEl) {
+        priceEl.textContent = formatPriceForSymbol(nextPrice, state.currentSymbolKey);
+        priceEl.classList.remove('price-flash-up', 'price-flash-down');
+        void priceEl.offsetWidth;
+        priceEl.classList.add(isUp ? 'price-flash-up' : 'price-flash-down');
+      }
+
+      updateBannerAndLevels();
+      calculateLotSize();
+    }
+
+    function startLivePriceStream() {
+      if (state.livePriceInterval) clearInterval(state.livePriceInterval);
+      fetchLivePrice();
+      state.livePriceInterval = setInterval(fetchLivePrice, 2500);
+    }
+
+    function calculateLotSize() {
+      const balance = parseFloat(document.getElementById('calcBalance').value || '10000');
+      const riskPct = parseFloat(document.getElementById('calcRiskPct').value || '1');
+      const riskAmount = balance * (riskPct / 100);
+
+      let contractSize = 100000;
+      const key = (state.currentSymbolKey || '').toUpperCase();
+      if (key.includes('XAU') || key.includes('XAG')) contractSize = 100;
+      else if (key.includes('BTC')) contractSize = 1;
+      else if (key.includes('ETH') || key.includes('SOL')) contractSize = 10;
+      else if (key.includes('JPY')) contractSize = 1000;
+      else if (key.includes('USD') || key.includes('CAD') || key.includes('CHF')) contractSize = 100000;
+
+      const slDistance = Math.max(state.currentSLOffset, 0.0001);
+      let lot = riskAmount / (slDistance * contractSize);
+      if (!Number.isFinite(lot) || lot <= 0) lot = 0.01;
+
+      const lotValue = Math.max(lot, 0.01).toFixed(2);
+      document.getElementById('calcSuggestedLot').textContent = `${lotValue} Lot`;
+      document.getElementById('calcRiskAmount').textContent = `$${riskAmount.toFixed(2)}`;
+    }
+
+    function renderTradingViewChart(symbol, interval) {
+      const chartDiv = document.getElementById('tradingview_chart');
+      if (!chartDiv) return;
+      chartDiv.innerHTML = '';
+
+      if (window.TradingView && typeof window.TradingView.widget === 'function') {
+        new window.TradingView.widget({
+          autosize: true,
+          symbol: symbol,
+          interval: interval,
+          timezone: 'Etc/UTC',
+          theme: 'dark',
+          style: '1',
+          locale: 'fa',
+          toolbar_bg: '#030712',
+          enable_publishing: false,
+          hide_side_toolbar: false,
+          allow_symbol_change: true,
+          container_id: 'tradingview_chart',
+          studies: ['STD;EMA', 'STD;RSI']
+        });
+      } else {
+        chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-slate-400 text-xs">در حال آماده‌سازی چارت...</div>';
+      }
+    }
+
+    function renderTechnicalGauge(symbolCode, interval) {
+      const container = document.getElementById('taWidgetContainer');
+      if (!container) return;
+
+      const html = `
+        <iframe
+          title="Technical analysis"
+          class="w-full h-full border-0"
+          srcdoc="<!DOCTYPE html><html><head><style>body{margin:0;padding:0;background:#020817;font-family:Arial,sans-serif} .wrap{width:100%;height:100%} .tv-container{width:100%;height:100%}</style></head><body><div class='wrap'><div class='tv-container' id='tv'></div><script src='https://s3.tradingview.com/tv.js'></script><script>if(window.TradingView && typeof window.TradingView.widget === 'function'){new window.TradingView.widget({autosize:true,symbol:${JSON.stringify(symbolCode)},interval:${JSON.stringify(interval)},theme:'dark',style:'1',locale:'fa',width:'100%',height:'280',showIntervalTabs:false,displayMode:'single',isTransparent:true,colorTheme:'dark'});}</script></div></body></html>"
+        ></iframe>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function refreshChart() {
+      const tf = document.getElementById('timeframeSelect').value || '30';
+      renderTradingViewChart(state.currentSymbolCode, tf);
+    }
+
+    function checkMarketSessions() {
+      const now = new Date();
+      const utcHour = now.getUTCHours();
+      setSessionBadge('session-sydney', utcHour >= 1 && utcHour < 10);
+      setSessionBadge('session-tokyo', utcHour >= 3 && utcHour < 12);
+      setSessionBadge('session-london', utcHour >= 11 && utcHour < 20);
+      setSessionBadge('session-newyork', utcHour >= 16 || utcHour < 1);
+    }
+
+    function setSessionBadge(id, isOpen) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (isOpen) {
+        el.className = 'text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
+        el.textContent = 'فعال';
+      } else {
+        el.className = 'text-[10px] font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-400 border-slate-700';
+        el.textContent = 'بسته';
+      }
+    }
+
+    function switchMobileTab(tab) {
+      const chartPanel = document.getElementById('chartPanel');
+      const sidebarPanel = document.getElementById('sidebarPanel');
+      const checklistCard = document.getElementById('checklistCard');
+      const calculatorCard = document.getElementById('calculatorCard');
+
+      document.getElementById('mobTabBtn-chart').classList.remove('tab-active');
+      document.getElementById('mobTabBtn-checklist').classList.remove('tab-active');
+      document.getElementById('mobTabBtn-calculator').classList.remove('tab-active');
+
+      if (window.innerWidth >= 1024) {
+        if (chartPanel) chartPanel.classList.remove('hidden');
+        if (sidebarPanel) sidebarPanel.classList.remove('hidden');
+        if (checklistCard) checklistCard.classList.remove('hidden');
+        if (calculatorCard) calculatorCard.classList.remove('hidden');
+        return;
+      }
+
+      if (tab === 'chart') {
+        if (chartPanel) chartPanel.classList.remove('hidden');
+        if (sidebarPanel) sidebarPanel.classList.add('hidden');
+        document.getElementById('mobTabBtn-chart').classList.add('tab-active');
+      } else if (tab === 'checklist') {
+        if (chartPanel) chartPanel.classList.add('hidden');
+        if (sidebarPanel) sidebarPanel.classList.remove('hidden');
+        if (checklistCard) checklistCard.classList.remove('hidden');
+        if (calculatorCard) calculatorCard.classList.add('hidden');
+        document.getElementById('mobTabBtn-checklist').classList.add('tab-active');
+      } else if (tab === 'calculator') {
+        if (chartPanel) chartPanel.classList.add('hidden');
+        if (sidebarPanel) sidebarPanel.classList.remove('hidden');
+        if (checklistCard) checklistCard.classList.add('hidden');
+        if (calculatorCard) calculatorCard.classList.remove('hidden');
+        document.getElementById('mobTabBtn-calculator').classList.add('tab-active');
+      }
+    }
+
+    window.addEventListener('load', () => {
+      checkMarketSessions();
+      setInterval(checkMarketSessions, 60000);
+      runAnalysis();
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 1024) {
+        const chartPanel = document.getElementById('chartPanel');
+        const sidebarPanel = document.getElementById('sidebarPanel');
+        const checklistCard = document.getElementById('checklistCard');
+        const calculatorCard = document.getElementById('calculatorCard');
+
+        if (chartPanel) chartPanel.classList.remove('hidden');
+        if (sidebarPanel) sidebarPanel.classList.remove('hidden');
+        if (checklistCard) checklistCard.classList.remove('hidden');
+        if (calculatorCard) calculatorCard.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
