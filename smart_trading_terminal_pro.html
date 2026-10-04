@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ترمینال تریدینگ حرفه‌ای - تحلیل تکنیکال جامع</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://s3.tradingview.com/tv.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            darkBg: '#0a0e27',
+            cardBg: '#0f1623',
+            glassPanel: 'rgba(15, 22, 35, 0.8)',
+            buy: '#10b981',
+            sell: '#ef4444',
+            neutral: '#6b7280',
+            warning: '#f59e0b',
+            info: '#06b6d4'
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" />
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; font-family: 'Vazirmatn', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1623 100%);
+      background-attachment: fixed;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .glass {
+      background: rgba(15, 22, 35, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.15); }
+
+    .signal-buy { background: rgba(16, 185, 129, 0.15); border-left: 4px solid #10b981; }
+    .signal-sell { background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; }
+    .signal-neutral { background: rgba(107, 114, 128, 0.15); border-left: 4px solid #6b7280; }
+
+    .indicator-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin: 4px;
+    }
+
+    .badge-buy { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .badge-sell { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .badge-neutral { background: rgba(107, 114, 128, 0.2); color: #6b7280; }
+
+    .pulse { animation: pulse-animation 2s infinite; }
+    @keyframes pulse-animation { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .chart-container { position: relative; width: 100%; height: 400px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    .strategy-score {
+      background: conic-gradient(from 0deg, #ef4444 0deg, #f59e0b 120deg, #10b981 240deg, #ef4444 360deg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 20px;
+    }
+
+    .tab-btn { 
+      padding: 8px 16px; 
+      border-radius: 8px; 
+      border: 1px solid rgba(255,255,255,0.1);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .tab-btn.active { 
+      background: rgba(16, 185, 129, 0.2); 
+      border-color: #10b981;
+      color: #10b981;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4">
+  <div class="max-w-[1920px] mx-auto">
+
+    <!-- HEADER -->
+    <div class="glass rounded-xl p-4 mb-4">
+      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-warning mb-1">
+            <i class="fas fa-chart-line mr-2"></i> پلتفرم تحلیل تکنیکال جامع
+          </h1>
+          <p class="text-slate-400">تحلیل اندیکاتور‌ها و استراتژی‌ها در تمام تایم‌فریم‌ها و سیمبل‌ها</p>
+        </div>
+        <div class="flex gap-3 items-center">
+          <div class="text-right">
+            <div id="currentTime" class="text-2xl font-mono font-bold text-buy">00:00:00</div>
+            <div class="text-xs text-slate-400">وقت سرور UTC</div>
+          </div>
+          <div class="w-3 h-3 bg-buy rounded-full pulse"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYMBOLS SELECTOR -->
+    <div class="glass rounded-xl p-4 mb-4">
+      <div class="flex flex-wrap gap-2 mb-3">
+        <label class="text-sm font-bold text-slate-300">انتخاب نماد:</label>
+      </div>
+      <div id="symbolGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2"></div>
+    </div>
+
+    <!-- TIMEFRAME SELECTOR -->
+    <div class="glass rounded-xl p-4 mb-4">
+      <div class="flex flex-wrap gap-2">
+        <label class="text-sm font-bold text-slate-300 w-full mb-2">انتخاب تایم‌فریم:</label>
+        <div id="timeframeGrid" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+      <!-- MAIN SIGNAL -->
+      <div class="lg:col-span-2">
+        <div id="mainSignal" class="card signal-neutral">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-sm text-slate-400 mb-1">سیگنال اصلی</div>
+              <h2 id="signalDirection" class="text-3xl font-bold mb-2">در حال تحلیل...</h2>
+              <p id="signalDescription" class="text-slate-300 text-sm mb-3">لطفاً منتظر بمانید</p>
+              <div id="signalDetails" class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <div class="text-slate-400">نقطه ورود</div>
+                  <div id="entryPrice" class="font-mono font-bold text-lg">-</div>
+                </div>
+                <div>
+                  <div class="text-slate-400">حد زیان (SL)</div>
+                  <div id="slPrice" class="font-mono font-bold text-lg">-</div>
+                </div>
+                <div>
+                  <div class="text-slate-400">تارگت 1 (TP)</div>
+                  <div id="tp1Price" class="font-mono font-bold text-lg">-</div>
+                </div>
+                <div>
+                  <div class="text-slate-400">نسبت Risk/Reward</div>
+                  <div id="rrRatio" class="font-mono font-bold text-lg">-</div>
+                </div>
+              </div>
+            </div>
+            <div id="signalScore" class="strategy-score w-20 h-20">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE PRICE -->
+      <div>
+        <div class="card">
+          <div class="text-sm text-slate-400 mb-2">قیمت لحظه‌ای</div>
+          <div id="livePrice" class="text-4xl font-bold text-buy font-mono mb-3">-</div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <div class="text-slate-400">بالاترین</div>
+              <div id="priceHigh" class="font-mono font-bold">-</div>
+            </div>
+            <div>
+              <div class="text-slate-400">پایین‌ترین</div>
+              <div id="priceLow" class="font-mono font-bold">-</div>
+            </div>
+            <div>
+              <div class="text-slate-400">حجم معاملات</div>
+              <div id="priceVolume" class="font-mono font-bold text-xs">-</div>
+            </div>
+            <div>
+              <div class="text-slate-400">تغییر 24h</div>
+              <div id="price24hChange" class="font-mono font-bold">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDICATORS ANALYSIS -->
+    <div class="glass rounded-xl p-4 mb-4">
+      <h3 class="text-lg font-bold mb-4">
+        <i class="fas fa-gauge-high mr-2"></i> تحلیل اندیکاتور‌ها
+      </h3>
+      <div id="indicatorsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Indicators will be loaded here -->
+      </div>
+    </div>
+
+    <!-- STRATEGIES -->
+    <div class="glass rounded-xl p-4 mb-4">
+      <h3 class="text-lg font-bold mb-4">
+        <i class="fas fa-sitemap mr-2"></i> تحلیل استراتژی‌ها
+      </h3>
+      <div id="strategiesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Strategies will be loaded here -->
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="glass rounded-xl p-4">
+      <h3 class="text-lg font-bold mb-4">
+        <i class="fas fa-chart-area mr-2"></i> نمودار تکنیکال
+      </h3>
+      <div class="chart-container">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // SYMBOLS DATABASE
+    const SYMBOLS = [
+      { name: 'GOLD', code: 'OANDA:XAUUSD', emoji: '🟡', category: 'Commodities', decimals: 2 },
+      { name: 'SILVER', code: 'OANDA:XAGUSD', emoji: '⚪', category: 'Commodities', decimals: 3 },
+      { name: 'BITCOIN', code: 'BINANCE:BTCUSDT', emoji: '🟠', category: 'Crypto', decimals: 2 },
+      { name: 'ETHEREUM', code: 'BINANCE:ETHUSDT', emoji: '🔵', category: 'Crypto', decimals: 2 },
+      { name: 'SOLANA', code: 'BINANCE:SOLUSDT', emoji: '🟣', category: 'Crypto', decimals: 2 },
+      { name: 'BNB', code: 'BINANCE:BNBUSDT', emoji: '🟡', category: 'Crypto', decimals: 2 },
+      { name: 'XRP', code: 'BINANCE:XRPUSDT', emoji: '🔴', category: 'Crypto', decimals: 4 },
+      { name: 'ADA', code: 'BINANCE:ADAUSDT', emoji: '🟦', category: 'Crypto', decimals: 4 },
+      { name: 'DOGE', code: 'BINANCE:DOGEUSD', emoji: '🐕', category: 'Crypto', decimals: 4 },
+      { name: 'EURUSD', code: 'FX:EURUSD', emoji: '🇪🇺', category: 'Forex', decimals: 5 },
+      { name: 'GBPUSD', code: 'FX:GBPUSD', emoji: '🇬🇧', category: 'Forex', decimals: 5 },
+      { name: 'USDJPY', code: 'FX:USDJPY', emoji: '🇯🇵', category: 'Forex', decimals: 2 },
+      { name: 'AUDUSD', code: 'FX:AUDUSD', emoji: '🇦🇺', category: 'Forex', decimals: 5 },
+      { name: 'USDCAD', code: 'FX:USDCAD', emoji: '🇨🇦', category: 'Forex', decimals: 5 },
+      { name: 'CRUDE OIL', code: 'TVC:USOIL', emoji: '🛢️', category: 'Commodities', decimals: 2 },
+      { name: 'BRENT OIL', code: 'TVC:UKOIL', emoji: '🛢️', category: 'Commodities', decimals: 2 },
+      { name: 'S&P500', code: 'FOREXCOM:SPX500', emoji: '📈', category: 'Indices', decimals: 1 },
+      { name: 'DOW JONES', code: 'FOREXCOM:DJI', emoji: '🇺🇸', category: 'Indices', decimals: 0 },
+      { name: 'NASDAQ', code: 'IG:NASDAQ', emoji: '📊', category: 'Indices', decimals: 1 },
+      { name: 'NIKKEI', code: 'TVC:NI225', emoji: '🇯🇵', category: 'Indices', decimals: 0 }
+    ];
+
+    const TIMEFRAMES = [
+      { label: '1m', value: '1', minutes: 1 },
+      { label: '5m', value: '5', minutes: 5 },
+      { label: '15m', value: '15', minutes: 15 },
+      { label: '30m', value: '30', minutes: 30 },
+      { label: '1h', value: '60', minutes: 60 },
+      { label: '4h', value: '240', minutes: 240 },
+      { label: '1D', value: 'D', minutes: 1440 },
+      { label: '1W', value: 'W', minutes: 10080 },
+      { label: '1M', value: 'M', minutes: 43200 }
+    ];
+
+    // STATE
+    const state = {
+      selectedSymbol: SYMBOLS[0],
+      selectedTimeframe: TIMEFRAMES[4], // 1h
+      priceData: { current: 0, open: 0, high: 0, low: 0, volume: 0, change24h: 0 },
+      indicators: {},
+      signals: {}
+    };
+
+    // INIT UI
+    function initUI() {
+      updateClock();
+      renderSymbolGrid();
+      renderTimeframeGrid();
+      setInterval(updateClock, 1000);
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getUTCHours()).padStart(2, '0');
+      const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+      document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
+    function renderSymbolGrid() {
+      const grid = document.getElementById('symbolGrid');
+      grid.innerHTML = '';
+      SYMBOLS.forEach(symbol => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${state.selectedSymbol.code === symbol.code ? 'active' : ''}`;
+        btn.innerHTML = `<span class="mr-2">${symbol.emoji}</span> ${symbol.name}`;
+        btn.onclick = () => selectSymbol(symbol);
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderTimeframeGrid() {
+      const grid = document.getElementById('timeframeGrid');
+      grid.innerHTML = '';
+      TIMEFRAMES.forEach(tf => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${state.selectedTimeframe.value === tf.value ? 'active' : ''}`;
+        btn.textContent = tf.label;
+        btn.onclick = () => selectTimeframe(tf);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectSymbol(symbol) {
+      state.selectedSymbol = symbol;
+      renderSymbolGrid();
+      analyzeSymbol();
+    }
+
+    function selectTimeframe(tf) {
+      state.selectedTimeframe = tf;
+      renderTimeframeGrid();
+      analyzeSymbol();
+    }
+
+    function analyzeSymbol() {
+      console.log(`تحلیل ${state.selectedSymbol.name} در تایم‌فریم ${state.selectedTimeframe.label}`);
+      
+      // شبیه‌سازی داده‌های واقعی
+      generateMockData();
+      analyzeIndicators();
+      analyzeStrategies();
+      renderIndicators();
+      renderStrategies();
+      renderSignal();
+      renderChart();
+    }
+
+    function generateMockData() {
+      const basePrice = Math.random() * 10000 + 1000;
+      const change = (Math.random() - 0.5) * 100;
+      
+      state.priceData = {
+        current: basePrice + change,
+        open: basePrice,
+        high: basePrice + (Math.random() * 50),
+        low: basePrice - (Math.random() * 50),
+        volume: Math.random() * 1000000000,
+        change24h: change
+      };
+    }
+
+    // INDICATORS ANALYSIS
+    const INDICATORS = {
+      'RSI': { name: 'مؤشر نسبت قدرت (RSI)', value: Math.random() * 100 },
+      'MACD': { name: 'تقاطع میانگین‌های نمایی', value: (Math.random() - 0.5) * 2 },
+      'EMA9': { name: 'میانگین نمایی 9 دوره', value: Math.random() * 100 },
+      'EMA21': { name: 'میانگین نمایی 21 دوره', value: Math.random() * 100 },
+      'EMA50': { name: 'میانگین نمایی 50 دوره', value: Math.random() * 100 },
+      'EMA200': { name: 'میانگین نمایی 200 دوره', value: Math.random() * 100 },
+      'BB': { name: 'باند‌های بولینجر', value: (Math.random() - 0.5) * 2 },
+      'Stoch': { name: 'شاخص Stochastic', value: Math.random() * 100 },
+      'CCI': { name: 'شاخص کموداتی', value: (Math.random() - 0.5) * 200 },
+      'ATR': { name: 'دامنه‌ی واقعی متوسط', value: Math.random() * 100 },
+      'ADX': { name: 'شاخص جهت میانگین', value: Math.random() * 100 },
+      'OBV': { name: 'حجم متوازن', value: (Math.random() - 0.5) * 1000 },
+      'MOM': { name: 'تغییری شناس', value: (Math.random() - 0.5) * 100 },
+      'ROC': { name: 'نرخ تغییر', value: (Math.random() - 0.5) * 10 },
+      'Williams%R': { name: 'درصد ویلیامز', value: Math.random() * 100 }
+    };
+
+    function analyzeIndicators() {
+      Object.keys(INDICATORS).forEach(key => {
+        const indicator = INDICATORS[key];
+        state.indicators[key] = {
+          ...indicator,
+          signal: getIndicatorSignal(key, indicator.value)
+        };
+      });
+    }
+
+    function getIndicatorSignal(key, value) {
+      switch(key) {
+        case 'RSI':
+          if (value > 70) return 'SELL';
+          if (value < 30) return 'BUY';
+          return 'NEUTRAL';
+        case 'MACD':
+          return value > 0 ? 'BUY' : 'SELL';
+        case 'Stoch':
+          if (value > 80) return 'SELL';
+          if (value < 20) return 'BUY';
+          return 'NEUTRAL';
+        case 'CCI':
+          if (value > 100) return 'BUY';
+          if (value < -100) return 'SELL';
+          return 'NEUTRAL';
+        default:
+          return Math.random() > 0.5 ? 'BUY' : 'SELL';
+      }
+    }
+
+    function renderIndicators() {
+      const container = document.getElementById('indicatorsContainer');
+      container.innerHTML = '';
+
+      Object.entries(state.indicators).forEach(([key, indicator]) => {
+        const signalClass = `badge-${indicator.signal.toLowerCase()}`;
+        const signalText = {
+          'BUY': 'خرید ✓',
+          'SELL': 'فروش ✗',
+          'NEUTRAL': 'بی‌طرف'
+        }[indicator.signal];
+
+        const html = `
+          <div class="card">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <div class="text-xs text-slate-400">${indicator.name}</div>
+                <div class="text-2xl font-bold font-mono">${indicator.value.toFixed(2)}</div>
+              </div>
+              <span class="indicator-badge ${signalClass}">${signalText}</span>
+            </div>
+            <div class="w-full bg-slate-700 rounded-full h-2">
+              <div class="bg-gradient-to-r from-sell to-buy h-2 rounded-full" style="width: ${(indicator.value % 100)}%"></div>
+            </div>
+          </div>
+        `;
+        container.innerHTML += html;
+      });
+    }
+
+    // STRATEGIES ANALYSIS
+    const STRATEGIES = [
+      { name: 'SMC / ICT', description: 'تحلیل کندل‌های هوشمند', weight: 0.15 },
+      { name: 'تقاطع EMA', description: 'Golden Cross / Death Cross', weight: 0.12 },
+      { name: 'واگرایی', description: 'RSI و MACD Divergence', weight: 0.11 },
+      { name: 'Level & Support', description: 'سطوح حمایت و مقاومت', weight: 0.14 },
+      { name: 'Fibonacci', description: 'ریتریسمنت فیبوناچی', weight: 0.10 },
+      { name: 'Candlestick', description: 'الگوهای کندل‌ی', weight: 0.12 },
+      { name: 'Trend Following', description: 'پیروی روند', weight: 0.13 },
+      { name: 'Volume Analysis', description: 'تحلیل حجم معاملات', weight: 0.13 }
+    ];
+
+    function analyzeStrategies() {
+      state.signals = STRATEGIES.map((strategy, idx) => ({
+        ...strategy,
+        signal: Math.random() > 0.4 ? 'BUY' : (Math.random() > 0.5 ? 'SELL' : 'NEUTRAL'),
+        strength: Math.random() * 100,
+        score: Math.random() * 100
+      }));
+    }
+
+    function renderStrategies() {
+      const container = document.getElementById('strategiesContainer');
+      container.innerHTML = '';
+
+      state.signals.forEach(strategy => {
+        const signalClass = `signal-${strategy.signal.toLowerCase()}`;
+        const signalEmoji = { 'BUY': '🟢', 'SELL': '🔴', 'NEUTRAL': '🟡' }[strategy.signal];
+
+        const html = `
+          <div class="card ${signalClass}">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <div class="text-sm font-bold">${signalEmoji} ${strategy.name}</div>
+                <div class="text-xs text-slate-400 mt-1">${strategy.description}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold">${strategy.score.toFixed(0)}</div>
+                <div class="text-xs text-slate-400">امتیاز</div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <div class="flex-1">
+                <div class="text-xs text-slate-400 mb-1">قدرت سیگنال</div>
+                <div class="w-full bg-slate-700 rounded h-2">
+                  <div class="bg-gradient-to-r from-sell to-buy h-2 rounded" style="width: ${strategy.strength}%"></div>
+                </div>
+              </div>
+              <div class="text-sm font-bold text-right">${strategy.strength.toFixed(0)}%</div>
+            </div>
+          </div>
+        `;
+        container.innerHTML += html;
+      });
+    }
+
+    // MAIN SIGNAL
+    function renderSignal() {
+      const buyCount = state.signals.filter(s => s.signal === 'BUY').length;
+      const sellCount = state.signals.filter(s => s.signal === 'SELL').length;
+      const totalScore = state.signals.reduce((sum, s) => sum + s.score, 0) / state.signals.length;
+
+      let signal = 'NEUTRAL';
+      let signalText = 'سیگنال بی‌طرف';
+      let color = 'neutral';
+
+      if (buyCount > sellCount * 1.5) {
+        signal = 'BUY';
+        signalText = 'سیگنال خرید قوی ✓';
+        color = 'buy';
+      } else if (sellCount > buyCount * 1.5) {
+        signal = 'SELL';
+        signalText = 'سیگنال فروش قوی ✗';
+        color = 'sell';
+      }
+
+      const entryPrice = state.priceData.current;
+      const slDistance = Math.abs(state.priceData.current - state.priceData.low) * 1.2;
+      const tpDistance = slDistance * 2;
+      const sl = signal === 'BUY' ? entryPrice - slDistance : entryPrice + slDistance;
+      const tp = signal === 'BUY' ? entryPrice + tpDistance : entryPrice - tpDistance;
+      const rr = (Math.abs(tp - entryPrice) / Math.abs(sl - entryPrice)).toFixed(2);
+
+      const mainSignal = document.getElementById('mainSignal');
+      mainSignal.className = `card signal-${signal.toLowerCase()}`;
+
+      document.getElementById('signalDirection').textContent = signalText;
+      document.getElementById('signalDescription').textContent = `${buyCount} استراتژی خرید / ${sellCount} استراتژی فروش`;
+      document.getElementById('entryPrice').textContent = entryPrice.toFixed(state.selectedSymbol.decimals);
+      document.getElementById('slPrice').textContent = sl.toFixed(state.selectedSymbol.decimals);
+      document.getElementById('tp1Price').textContent = tp.toFixed(state.selectedSymbol.decimals);
+      document.getElementById('rrRatio').textContent = `1:${rr}`;
+      document.getElementById('signalScore').textContent = totalScore.toFixed(0);
+      document.getElementById('signalScore').style.background = 
+        signal === 'BUY' ? `conic-gradient(#10b981 0deg 270deg, #ef4444 270deg)` :
+        signal === 'SELL' ? `conic-gradient(#ef4444 0deg 270deg, #10b981 270deg)` :
+        `conic-gradient(#6b7280 0deg 360deg)`;
+
+      // Update live price
+      document.getElementById('livePrice').textContent = entryPrice.toFixed(state.selectedSymbol.decimals);
+      document.getElementById('priceHigh').textContent = state.priceData.high.toFixed(state.selectedSymbol.decimals);
+      document.getElementById('priceLow').textContent = state.priceData.low.toFixed(state.selectedSymbol.decimals);
+      document.getElementById('priceVolume').textContent = (state.priceData.volume / 1000000).toFixed(1) + 'M';
+      document.getElementById('price24hChange').innerHTML = 
+        `<span class="text-${state.priceData.change24h > 0 ? 'buy' : 'sell'}">${state.priceData.change24h.toFixed(2)}%</span>`;
+    }
+
+    // CHART
+    let chartInstance = null;
+
+    function renderChart() {
+      const ctx = document.getElementById('priceChart');
+      if (!ctx) return;
+
+      if (chartInstance) chartInstance.destroy();
+
+      const data = {
+        labels: Array.from({length: 50}, (_, i) => `${i}`),
+        datasets: [{
+          label: 'قیمت',
+          data: Array.from({length: 50}, () => state.priceData.current + (Math.random() - 0.5) * 100),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      };
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8' }
+            }
+          }
+        }
+      });
+    }
+
+    // START
+    window.addEventListener('load', () => {
+      initUI();
+      analyzeSymbol();
+      setInterval(analyzeSymbol, 3000);
+    });
+  </script>
+</body>
+</html>
